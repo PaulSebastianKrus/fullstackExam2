@@ -1,5 +1,5 @@
 <script>
-  import { onMount, afterUpdate } from 'svelte';
+  import { onMount } from 'svelte';
   import { gameStore } from '../stores/gameStore.js';
   import Question from './Question.svelte';
   import MoneyLadder from './MoneyLadder.svelte';
@@ -42,7 +42,8 @@
     <h1>Who Wants to Be a Millionaire</h1>
     <p>Player: {$currentUser?.username || 'Guest'}</p>
     
-    {#if gameStatus !== 'loading'}
+    <!-- Only show restart button during active gameplay -->
+    {#if gameStatus === 'active'}
       <button class="restart-button" on:click={handleRestartGame}>
         Restart Game
       </button>
@@ -109,7 +110,9 @@
             </button>
           </div>
         </div>
-        
+      </div>
+
+      <div class="ladder-container">
         <MoneyLadder currentLevel={currentLevel} />
       </div>
     </div>
@@ -162,7 +165,7 @@
   
   .game-area {
     display: grid;
-    grid-template-columns: 200px 1fr 200px; 
+    grid-template-columns: 200px 1fr 220px; /* Sidebar, main, ladder */
     gap: 20px;
   }
   
@@ -203,6 +206,10 @@
   }
   
   .restart-button {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
     padding: 0.5rem 1rem;
     background-color: #3b82f6;
     color: white;
@@ -210,21 +217,24 @@
     border-radius: 4px;
     font-weight: bold;
     cursor: pointer;
-    margin-left: auto;
-  }
-  
-  .restart-button:hover {
-    background-color: #2563eb;
   }
   
   header {
+    position: relative;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+  
+  header h1 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
   }
   
   header p {
-    margin-left: 2rem;
+    margin: 0;
   }
   
   .audience-results {

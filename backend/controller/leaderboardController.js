@@ -4,77 +4,99 @@ import { updateLeaderboard as emitLeaderboardUpdate, updateUserStats as emitUser
 
 export const updateLeaderboard = async (userId, username, moneyWon, level, gameWon, lifelinesUsed, avgTimePerQuestion) => {
   try {
-    if (!userId) {
-      return;
-    }
-    
+    // Find existing leaderboard entry for the user
     let leaderboardEntry = await Leaderboard.findOne({ userId });
     
-    if (!leaderboardEntry) {
+    if (leaderboardEntry) {
+      // Update existing entry
+      leaderboardEntry.totalEarnings += moneyWon; // ADD the money won, don't replace
+      leaderboardEntry.gamesPlayed += 1;
+      
+      if (gameWon) {
+        leaderboardEntry.gamesWon += 1;
+      }
+      
+      if (level > leaderboardEntry.highestLevel) {
+        leaderboardEntry.highestLevel = level;
+      }
+      
+      // Update score (use your scoring formula)
+      const newScore = calculateScore(moneyWon, level, gameWon);
+      if (newScore > leaderboardEntry.highestScore) {
+        leaderboardEntry.highestScore = newScore;
+      }
+      
+      // Update other stats
+      leaderboardEntry.lifelinesUsed += lifelinesUsed;
+      
+      // Calculate new average time per question
+      const totalQuestions = leaderboardEntry.gamesPlayed * 15; // adjust if needed
+      leaderboardEntry.averageTimePerQuestion = 
+        ((leaderboardEntry.averageTimePerQuestion * (totalQuestions - 15)) + (avgTimePerQuestion * 15)) / totalQuestions;
+      
+      await leaderboardEntry.save();
+    } else {
+      // Create new entry
       leaderboardEntry = new Leaderboard({
         userId,
         username,
-        highestScore: 0,
-        totalEarnings: 0,
-        gamesPlayed: 0,
-        gamesWon: 0,
-        highestLevel: 0,
-        lifelinesUsed: 0,
-        averageTimePerQuestion: 0
+        totalEarnings: moneyWon,
+        highestScore: calculateScore(moneyWon, level, gameWon),
+        gamesPlayed: 1,
+        gamesWon: gameWon ? 1 : 0,
+        highestLevel: level,
+        lifelinesUsed: lifelinesUsed,
+        averageTimePerQuestion: avgTimePerQuestion
       });
-    }
-    
-    leaderboardEntry.gamesPlayed += 1;
-    
-    if (gameWon) {
-      leaderboardEntry.gamesWon += 1;
-    }
-    
-    leaderboardEntry.totalEarnings += moneyWon || 0;
-    
-    if ((moneyWon || 0) > leaderboardEntry.highestScore) {
-      leaderboardEntry.highestScore = moneyWon;
-    }
-    
-    if ((level || 0) > leaderboardEntry.highestLevel) {
-      leaderboardEntry.highestLevel = level;
-    }
-    
-    leaderboardEntry.lifelinesUsed += lifelinesUsed || 0;
-    
-    if (avgTimePerQuestion > 0) {
-      const oldAvg = leaderboardEntry.averageTimePerQuestion || 0;
-      const oldGames = Math.max(0, leaderboardEntry.gamesPlayed - 1);
       
-      if (oldGames > 0) {
-        leaderboardEntry.averageTimePerQuestion = 
-          (oldAvg * oldGames + avgTimePerQuestion) / leaderboardEntry.gamesPlayed;
-      } else {
-        leaderboardEntry.averageTimePerQuestion = avgTimePerQuestion;
-      }
+      await leaderboardEntry.save();
     }
     
-    leaderboardEntry.lastPlayed = new Date();
+    // Get updated leaderboard
+    const updatedLeaderboard = await Leaderboard.find()
+      .sort({ highestScore: -1 })
+      .limit(20);
     
-    await leaderboardEntry.save();
-    
+    // Emit updates via socket
     try {
-      const updatedLeaderboard = await Leaderboard.find()
-        .sort({ highestScore: -1 })
-        .limit(100);
-        
       const userStats = await getUserStatsById(userId);
-      
       emitLeaderboardUpdate(updatedLeaderboard);
       
       if (userStats) {
         emitUserStatsUpdate(userId, userStats);
       }
     } catch (socketError) {
+      console.error('Socket error:', socketError);
     }
     
   } catch (error) {
+    console.error('Error updating leaderboard:', error);
   }
+};
+
+// Helper function to calculate score
+const calculateScore = (moneyWon, level, gameWon) => {
+  // Map level to prize amount directly (WWTBAM prize structure)
+  const prizeValues = {
+    1: 100,
+    2: 200,
+    3: 300,
+    4: 500,
+    5: 1000,
+    6: 2000,
+    7: 4000,
+    8: 8000,
+    9: 16000,
+    10: 32000,
+    11: 64000,
+    12: 125000,
+    13: 250000,
+    14: 500000,
+    15: 1000000
+  };
+  
+  // Return the prize value for the level reached
+  return prizeValues[level] || 0;
 };
 
 const getUserStatsById = async (userId) => {

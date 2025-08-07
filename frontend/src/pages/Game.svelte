@@ -2,7 +2,6 @@
   import { useParams } from 'svelte-routing';
   import GameComponent from '../components/Game.svelte';
   
-  // Get game ID from URL parameters if using svelte-routing
   const params = useParams();
   const gameId = params?.gameId || null;
 </script>

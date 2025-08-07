@@ -2,6 +2,8 @@ import GameSession from '../models/gameSessionModel.js';
 import Game from '../models/gameModel.js';
 import Question from '../models/questionsModel.js';
 import { MONEY_VALUES, calculateMoneyAtStake, calculateSecuredMoney } from '../utils/gameConstants.js';
+import { updateLeaderboard } from './leaderboardController.js';
+import User from '../models/userModel.js';
 
 const findQuestion = async (game, questionId) => {
   let question = null;
@@ -34,7 +36,7 @@ const findQuestionsForLevel = async (game, level) => {
   return levelQuestions;
 };
 
-const handleGameWin = async (gameSession) => {
+const handleGameWin = async (gameSession, userId) => {
   gameSession.status = 'completed'; 
   gameSession.endTime = new Date();
   gameSession.moneyWon = MONEY_VALUES[gameSession.currentLevel];
@@ -42,9 +44,28 @@ const handleGameWin = async (gameSession) => {
   
   const prizeAmount = MONEY_VALUES[gameSession.currentLevel];
   
+  // Calculate lifelinesUsed
+  const lifelinesUsed = Object.values(gameSession.lifelines || {}).filter(Boolean).length;
+  
+  // Calculate avgTimePerQuestion
   let avgTimePerQuestion = 0;
   if (gameSession.questionTimes && gameSession.questionTimes.length > 0) {
     avgTimePerQuestion = gameSession.questionTimes.reduce((sum, time) => sum + time, 0) / gameSession.questionTimes.length;
+  }
+  
+  // Get the user for their username
+  const user = await User.findById(userId);
+  if (user) {
+    // Update the leaderboard
+    await updateLeaderboard(
+      userId,
+      user.username,
+      prizeAmount,
+      gameSession.currentLevel,
+      true, // Game won
+      lifelinesUsed,
+      avgTimePerQuestion
+    );
   }
   
   return {
@@ -54,17 +75,37 @@ const handleGameWin = async (gameSession) => {
   };
 };
 
-const handleGameLoss = async (gameSession) => {
+const handleGameLoss = async (gameSession, userId) => {
   gameSession.status = 'failed';
   gameSession.endTime = new Date();
   await gameSession.save();
 
   const moneyWon = calculateSecuredMoney(gameSession.currentLevel);
+  gameSession.moneyWon = moneyWon;
+  await gameSession.save();
 
+  // Calculate lifelinesUsed
+  const lifelinesUsed = Object.values(gameSession.lifelines || {}).filter(Boolean).length;
+  
   let avgTimePerQuestion = 0;
   if (gameSession.questionTimes && gameSession.questionTimes.length > 0) {
     const totalTime = gameSession.questionTimes.reduce((sum, time) => sum + time, 0);
     avgTimePerQuestion = Math.round(totalTime / gameSession.questionTimes.length);
+  }
+
+  // Get the user for their username
+  const user = await User.findById(userId);
+  if (user) {
+    // Update the leaderboard
+    await updateLeaderboard(
+      userId,
+      user.username,
+      moneyWon,
+      Math.max(0, gameSession.currentLevel - 1), // One level lower since they lost
+      false, // Game lost
+      lifelinesUsed,
+      avgTimePerQuestion
+    );
   }
 
   return {

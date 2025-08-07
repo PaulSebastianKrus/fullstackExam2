@@ -26,7 +26,7 @@
   });
   
   function setupSocket() {
-    socket = io('http://localhost:3000'); 
+    socket = io(import.meta.env.SOCKET_URL);
 
     socket.on('connect', () => {
       isConnected = true;

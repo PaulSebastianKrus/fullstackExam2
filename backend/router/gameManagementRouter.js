@@ -1,7 +1,7 @@
 import express from 'express';
 import {
   listGames, createGame, deleteGame
-} from '../controller/gameManegementController.js';
+} from '../controller/gameManagementController.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();

@@ -3,7 +3,7 @@ import GameSession from '../models/gameSessionModel.js';
 import User from '../models/userModel.js';
 import mongoose from '../utils/db.js';
 import Question from '../models/questionsModel.js';
-import { updateLeaderboard } from './statsController.js';
+import { updateLeaderboard } from './leaderboardController.js';
 import { MONEY_VALUES, calculateMoneyAtStake, calculateSecuredMoney } from '../utils/gameConstants.js';
 
 

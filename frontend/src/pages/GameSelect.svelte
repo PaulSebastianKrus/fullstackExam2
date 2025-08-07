@@ -2,10 +2,12 @@
   import { onMount, onDestroy } from 'svelte';
   import { navigate } from "svelte-routing";
   import { io } from 'socket.io-client';
+  import { currentUser } from '../stores/generalStore.js';
+  import toast from 'svelte-french-toast';
   
   let games = [];
   let allThemes = new Set(['All']);
-  let selectedTheme = 'All';
+  let selectedFilter = 'all'; // Changed from theme to filter type: 'all', 'classic', or 'custom'
   let isLoading = true;
   let error = null;
   let socket;
@@ -22,7 +24,7 @@
   });
   
   function setupSocket() {
-    socket = io('http://localhost:3000');
+    socket = io(import.meta.env.SOCKET_URL);
     
     socket.on('gameCreated', (data) => {
       games = [data.game, ...games];
@@ -82,9 +84,54 @@
     navigate(`/game/${gameId}`);
   }
   
-  $: filteredGames = selectedTheme === 'All' 
-    ? games 
-    : games.filter(game => game.theme === selectedTheme);
+  async function deleteGame(gameId, gameTitle, event) {
+    // Stop the click from propagating to parent (would start the game)
+    event.stopPropagation();
+    
+    // Confirm deletion
+    if (!confirm(`Are you sure you want to delete "${gameTitle}"?`)) {
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/game-management/delete/${gameId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Remove the game from our local array
+        games = games.filter(game => game._id !== gameId);
+        toast.success(`Game "${gameTitle}" deleted successfully`);
+      } else {
+        toast.error(data.message || 'Failed to delete game');
+      }
+    } catch (err) {
+      console.error('Error deleting game:', err);
+      toast.error(err.message || 'An error occurred while deleting the game');
+    }
+  }
+  
+  // Update the filtering logic to include my-games option
+  $: filteredGames = 
+    selectedFilter === 'all' 
+      ? games 
+      : selectedFilter === 'classic'
+        ? games.filter(game => game.isDefault)
+        : selectedFilter === 'custom'
+          ? games.filter(game => !game.isDefault)
+          : selectedFilter === 'my-games'
+            ? games.filter(game => game.creatorName === $currentUser?.username)
+            : [];
 </script>
 
 <div class="game-select">
@@ -99,13 +146,34 @@
   
   <div class="content-container">
     <div class="filter-controls">
-      <div class="theme-filter">
-        <label for="themeFilter">Filter by Theme:</label>
-        <select id="themeFilter" bind:value={selectedTheme}>
-          {#each Array.from(allThemes) as theme}
-            <option value={theme}>{theme}</option>
-          {/each}
-        </select>
+      <div class="filter-buttons">
+        <button 
+          class="filter-btn" 
+          class:active={selectedFilter === 'all'} 
+          on:click={() => selectedFilter = 'all'}>
+          <i class="fas fa-th-list"></i> All Games
+        </button>
+        
+        <button 
+          class="filter-btn" 
+          class:active={selectedFilter === 'classic'} 
+          on:click={() => selectedFilter = 'classic'}>
+          <i class="fas fa-trophy"></i> Classic Games
+        </button>
+        
+        <button 
+          class="filter-btn" 
+          class:active={selectedFilter === 'custom'} 
+          on:click={() => selectedFilter = 'custom'}>
+          <i class="fas fa-users"></i> Custom Games
+        </button>
+      
+        <button 
+          class="filter-btn" 
+          class:active={selectedFilter === 'my-games'} 
+          on:click={() => selectedFilter = 'my-games'}>
+          <i class="fas fa-user"></i> My Games
+        </button>
       </div>
     </div>
     
@@ -121,13 +189,13 @@
       </div>
     {:else if filteredGames.length === 0}
       <div class="no-games">
-        <p>No games found{selectedTheme !== 'All' ? ` for theme "${selectedTheme}"` : ''}.</p>
+        <p>No games found{selectedFilter !== 'all' ? ` in ${selectedFilter} games` : ''}.</p>
         <div class="actions">
           <button class="create-button" on:click={() => navigate('/create-game')}>
             <i class="fas fa-plus"></i> Create your own game
           </button>
-          {#if selectedTheme !== 'All'}
-            <button class="show-all-button" on:click={() => selectedTheme = 'All'}>
+          {#if selectedFilter !== 'all'}
+            <button class="show-all-button" on:click={() => selectedFilter = 'all'}>
               <i class="fas fa-list"></i> Show all games
             </button>
           {/if}
@@ -136,9 +204,35 @@
     {:else}
       <div class="games-grid">
         {#each filteredGames as game}
-          <button class="game-card" on:click={() => startGame(game._id)}>
+          <!-- Change from <button> to <div> for the outer card -->
+          <div
+            class="game-card"
+            tabindex="0"
+            role="button"
+            aria-label={`Play ${game.title}`}
+            on:click={() => startGame(game._id)}
+            on:keydown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                startGame(game._id);
+                e.preventDefault();
+              }
+            }}
+          >
             <div class="theme-badge">{game.theme}</div>
-            <h3>{game.title}</h3>
+            <div class="card-header">
+              <h3>{game.title}</h3>
+            </div>
+            {#if selectedFilter === 'my-games'}
+              <button
+                class="delete-button-float"
+                on:click={(e) => deleteGame(game._id, game.title, e)}
+                aria-label="Delete game"
+                tabindex="0"
+                style="font-size: 1.5rem; font-weight: bold;"
+              >
+                &times;
+              </button>
+            {/if}
             <p class="author">by {game.creatorName}</p>
             <p class="description">
               {game.description ? game.description : 'No description provided.'}
@@ -148,7 +242,7 @@
               <span><i class="fas fa-play"></i> {game.playCount} plays</span>
             </div>
             <span class="play-button">Play Now</span>
-          </button>
+          </div>
         {/each}
       </div>
     {/if}
@@ -223,23 +317,32 @@
     border-radius: 8px;
   }
   
-  .theme-filter {
+  .filter-buttons {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .filter-btn {
+    background-color: #334155;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    transition: background-color 0.2s;
   }
   
-  .theme-filter label {
-    font-weight: bold;
-    color: #e2e8f0;
+  .filter-btn:hover {
+    background-color: #475569;
   }
   
-  select {
-    padding: 0.5rem;
-    border-radius: 4px;
-    background-color: #334155;
+  .filter-btn.active {
+    background-color: #3b82f6;
     color: white;
-    border: 1px solid #475569;
   }
   
   .games-grid {
@@ -249,6 +352,7 @@
   }
   
   .game-card {
+    /* Keep existing styles */
     background-color: #1e293b;
     border-radius: 8px;
     padding: 1.5rem;
@@ -260,10 +364,8 @@
     flex-direction: column;
     height: 250px;
     
-    /* Button-specific styles */
+    /* Add these for better accessibility */
     text-align: left;
-    font-family: inherit;
-    font-size: inherit;
     width: 100%;
   }
   
@@ -398,4 +500,45 @@
     background-color: #3b82f6;
     color: white;
   }
+  
+  
+  
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .card-header h3 {
+    margin-right: 0.5rem;
+    flex-grow: 1;
+  }
+  
+  .delete-button-float {
+    position: absolute;
+    top: 50%;
+    right: 1rem;
+    transform: translateY(-50%);
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 2;
+  }
+  
+  .game-card:hover .delete-button-float,
+  .game-card:focus-within .delete-button-float {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  
+ 
 </style>

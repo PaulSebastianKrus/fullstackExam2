@@ -1,9 +1,7 @@
 <script>
   import { navigate } from "svelte-routing";
-  import { currentUser } from '../stores/generalStore.js';
   import toast from 'svelte-french-toast';
   
-  // Default themes + ability to add custom theme
   let defaultThemes = ['Classic', 'Sports', 'Science', 'Movies', 'Music', 'History'];
   let gameTitle = '';
   let gameDescription = '';
@@ -13,13 +11,11 @@
   let currentQuestion = createEmptyQuestion();
   let isSubmitting = false;
   
-  // Auto-calculate levels and requirements based on questions
   $: maxLevel = questions.length > 0 ? Math.max(...questions.map(q => q.difficulty)) : 1;
   $: minLevel = questions.length > 0 ? Math.min(...questions.map(q => q.difficulty)) : 1;
   $: levelsWithQuestions = [...new Set(questions.map(q => q.difficulty))].sort((a, b) => a - b);
   $: missingLevels = [];
   $: {
-    // Find missing levels between min and max
     missingLevels = [];
     if (questions.length > 0) {
       for (let i = minLevel; i <= maxLevel; i++) {
@@ -60,7 +56,6 @@
       }
     }
     
-    // Since difficulty is already a number, just validate it directly
     if (currentQuestion.difficulty < 1 || currentQuestion.difficulty > 15) {
       toast.error('Difficulty must be a number between 1 and 15');
       return false;
@@ -73,7 +68,6 @@
     questions = questions.filter((_, i) => i !== index);
   }
   
-  // Check if game is valid for submission
   function isGameValid() {
     if (questions.length < 5) return false;
     if (missingLevels.length > 0) return false;
@@ -96,7 +90,6 @@
       return;
     }
     
-    // Use custom theme if specified
     const finalTheme = selectedTheme === 'Custom' ? customTheme : selectedTheme;
     if (selectedTheme === 'Custom' && !customTheme.trim()) {
       toast.error('Custom theme name is required');
@@ -106,7 +99,7 @@
     try {
       isSubmitting = true;
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/game/create', {
+      const response = await fetch('/api/game-management/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -117,7 +110,7 @@
           description: gameDescription,
           theme: finalTheme,
           questions: questions,
-          maxLevel: maxLevel  // Auto-calculated from questions
+          maxLevel: maxLevel  
         })
       });
       
@@ -213,7 +206,7 @@
               <i class="fas fa-chart-line"></i>
             </div>
             <div class="status-details">
-              <span class="status-value">{questions.length > 0 ? `${minLevel} - ${maxLevel}` : 'N/A'}</span>
+              <span class="status-value">{questions.length > 0 ? `${minLevel} - ${maxLevel}` : '0'}</span>
               <span class="status-label">Difficulty Range</span>
             </div>
           </div>
@@ -237,7 +230,6 @@
         {/if}
       </section>
       
-      <!-- Questions Section -->
       <section class="section">
         <div class="section-header">
           <h2>Questions ({questions.length}/5+ required)</h2>
@@ -250,7 +242,9 @@
                 <div class="question-header">
                   <div class="question-number">#{i + 1}</div>
                   <div class="question-difficulty">Level {question.difficulty}</div>
-                  <button class="remove-button" on:click={() => removeQuestion(i)}>
+                  <button class="remove-button" 
+                          on:click={() => removeQuestion(i)} 
+                          aria-label="Remove question #{i + 1}">
                     <i class="fas fa-times"></i>
                   </button>
                 </div>
@@ -277,7 +271,6 @@
           </div>
         {/if}
         
-        <!-- Add Question Form -->
         <div class="add-question-form">
           <div class="form-header">
             <h3>Add New Question</h3>
@@ -297,14 +290,21 @@
             <div class="form-row">
               <div class="form-group difficulty-group">
                 <label for="questionDifficulty">Difficulty Level (1-15)</label>
-                <input 
-                  id="questionDifficulty" 
-                  type="number" 
+                <select
+                  id="questionDifficulty"
                   bind:value={currentQuestion.difficulty}
-                  min="1" 
-                  max="15"
                 >
-                <small>1 = Easiest, 15 = Hardest</small>
+                  {#each Array(15) as _, i}
+                    <option value={i + 1}>
+                      {i + 1} {i === 0 ? '(Easiest)' : i === 14 ? '(Hardest)' : ''}
+                    </option>
+                  {/each}
+                </select>
+                <small>
+                    Each question is assigned a difficulty level from 1 (Easiest) to 15 (Hardest).  
+                    You can add multiple questions to any level.  
+                    Make sure every level in your chosen range has at least one question.
+                </small>
               </div>
             </div>
             
@@ -346,7 +346,6 @@
         </div>
       </section>
       
-      <!-- Submit Section -->
       <div class="submit-section">
         <button 
           class="btn-large btn-success" 
@@ -377,7 +376,7 @@
     color: var(--text-light);
     display: flex;
     flex-direction: column;
-    align-items: center; /* Center horizontally */
+    align-items: center; 
   }
   
   .page-header {
@@ -385,7 +384,7 @@
     padding: 1.5rem 0;
     border-bottom: 1px solid var(--border-color);
     margin-bottom: 2rem;
-    width: 100%; /* Full width header */
+    width: 100%; 
   }
   
   .page-header .container {
@@ -418,7 +417,6 @@
     padding-bottom: 3rem;
   }
   
-  /* Sections */
   .section {
     margin-bottom: 2.5rem;
   }
@@ -435,7 +433,6 @@
     color: var(--text-light);
   }
   
-  /* Form elements */
   .form-group {
     margin-bottom: 1.5rem;
   }
@@ -468,7 +465,6 @@
     margin-top: 1rem;
   }
   
-  /* Status section */
   .status-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -530,7 +526,6 @@
     color: #ef4444;
   }
   
-  /* Questions list */
   .questions-list {
     display: flex;
     flex-direction: column;
@@ -650,7 +645,6 @@
     font-size: 0.75rem;
   }
   
-  /* Add Question Form */
   .add-question-form {
     background-color: rgba(15, 23, 42, 0.4);
     border: 2px dashed rgba(71, 85, 105, 0.5);
@@ -732,7 +726,6 @@
     font-size: 1rem;
   }
   
-  /* Submit section */
   .submit-section {
     display: flex;
     justify-content: center;
@@ -763,7 +756,6 @@
     background-color: rgba(71, 85, 105, 0.5);
   }
   
-  /* Responsive */
   @media (max-width: 768px) {
     .form-row {
       flex-direction: column;

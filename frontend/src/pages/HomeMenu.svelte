@@ -49,7 +49,7 @@
   .welcome {
     font-size: 1.2rem;
     margin-bottom: 3rem;
-    color: #94a3b8;
+    color: #f3f3f4;
   }
   
   .menu-options {
