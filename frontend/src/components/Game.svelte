@@ -224,10 +224,6 @@
     margin-bottom: 0.5rem;
   }
 
-  header p {
-    margin: 0;
-  }
-
   .audience-results {
     background-color: #2c3e50;
     padding: 15px;
