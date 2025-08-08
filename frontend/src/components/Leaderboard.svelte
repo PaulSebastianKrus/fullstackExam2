@@ -1,5 +1,6 @@
 <script>
   import { currentUser } from '../stores/generalStore.js';
+  import ShareButton from './ShareButton.svelte';
 
   export let leaderboardData = [];
   export let userStats = null;
@@ -134,6 +135,12 @@
             </div>
           </div>
         </div>
+
+        <div class="user-stats-section">
+          <div class="share-container">
+            <ShareButton {userStats} />
+          </div>
+        </div>
       {:else}
         <div class="empty-state">
           <h3>🔒 Login Required</h3>
@@ -248,6 +255,8 @@
 <style>
   .leaderboard-component {
     width: 100%;
+    max-width: 100%;
+    padding: 0 2rem;
   }
 
   .tab-navigation {
@@ -314,9 +323,27 @@
 
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 1.5rem;
     margin-bottom: 2rem;
+  }
+
+  @media (min-width: 1440px) {
+    .stats-grid {
+      grid-template-columns: repeat(5, 1fr);
+    }
+  }
+
+  @media (min-width: 1024px) and (max-width: 1439px) {
+    .stats-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
   }
 
   .stat-card {
@@ -388,10 +415,11 @@
 
   .table-wrapper {
     overflow-x: auto;
+    width: 100%;
   }
 
   table {
-    width: 100%;
+    min-width: 100%;
     border-collapse: collapse;
     border-radius: 10px;
     overflow: hidden;
@@ -500,26 +528,20 @@
     }
   }
 
-  /* Responsive Design */
   @media (max-width: 768px) {
-    .tab-navigation {
-      flex-direction: column;
-      align-items: center;
+    .leaderboard-component {
+      padding: 0 1rem;
     }
-
-    .tab-button {
-      width: 100%;
-      max-width: 300px;
-    }
-
-    .stats-grid {
-      grid-template-columns: 1fr;
-    }
-
+    
     .section-header {
       flex-direction: column;
       gap: 1rem;
       text-align: center;
     }
+  }
+  .share-container {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: center;
   }
 </style>

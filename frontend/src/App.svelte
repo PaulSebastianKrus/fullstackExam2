@@ -12,7 +12,6 @@
   import HomeMenu from './pages/HomeMenu.svelte';
   import GameSelect from './pages/GameSelect.svelte';
   import CreateGame from './pages/CreateGame.svelte';
-  import StatsDashboard from './pages/StatsDashboard.svelte';
   import PrivacyPolicyPage from './pages/PrivacyPolicyPage.svelte';
 
   export let url = '';
@@ -62,8 +61,8 @@
 
           <nav class="main-nav" class:open={menuOpen}>
             <ul>
-              <li><Link to="/" on:click={() => (menuOpen = false)}>Home</Link></li>
-              <li><Link to="/game-select" on:click={() => (menuOpen = false)}>Games</Link></li>
+              <li><Link to="/" on:click={() => (menuOpen = false)}>Menu</Link></li>
+              <li><Link to="/game-select" on:click={() => (menuOpen = false)}>Custom Games</Link></li>
               <li><Link to="/leaderboard" on:click={() => (menuOpen = false)}>Leaderboard</Link></li>
             </ul>
             <button
@@ -118,12 +117,6 @@
       <Route path="/">
         <PrivateRouteGuard>
           <HomeMenu />
-        </PrivateRouteGuard>
-      </Route>
-
-      <Route path="/stats">
-        <PrivateRouteGuard>
-          <StatsDashboard />
         </PrivateRouteGuard>
       </Route>
 

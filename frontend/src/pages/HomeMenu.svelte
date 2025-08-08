@@ -27,10 +27,6 @@
     <button class="menu-button leaderboard" on:click={() => navigate('/leaderboard')}>
       <i class="fas fa-trophy"></i> Leaderboard
     </button>
-
-    <button class="menu-button stats" on:click={() => navigate('/stats')}>
-      <i class="fas fa-chart-line"></i> View My Stats
-    </button>
   </div>
 
   <div class="legal-links">
@@ -110,11 +106,6 @@
 
   .leaderboard {
     background-color: #9333ea;
-    color: white;
-  }
-
-  .stats {
-    background-color: #ef4444;
     color: white;
   }
 
