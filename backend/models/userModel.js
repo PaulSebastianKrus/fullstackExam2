@@ -1,5 +1,5 @@
-import mongoose from '../utils/db.js';
-import { hashPassword, comparePassword } from '../utils/hashPassword.js';
+import mongoose from "../utils/db.js";
+import { hashPassword, comparePassword } from "../utils/hashPassword.js";
 
 const userSchema = new mongoose.Schema({
   username: {
@@ -27,8 +27,8 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-userSchema.pre('save', async function (next) {
-  if (this.isModified('password')) {
+userSchema.pre("save", async function (next) {
+  if (this.isModified("password")) {
     this.password = await hashPassword(this.password);
   }
   next();
@@ -38,6 +38,6 @@ userSchema.methods.comparePassword = function (candidatePassword) {
   return comparePassword(candidatePassword, this.password);
 };
 
-const User = mongoose.model('User', userSchema);
+const User = mongoose.model("User", userSchema);
 
 export default User;

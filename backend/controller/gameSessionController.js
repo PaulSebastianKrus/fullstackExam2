@@ -1,20 +1,23 @@
-import Game from '../models/gameModel.js';
-import GameSession from '../models/gameSessionModel.js';
-import User from '../models/userModel.js';
-import mongoose from '../utils/db.js';
-import Question from '../models/questionsModel.js';
-import { updateLeaderboard } from './leaderboardController.js';
-import { MONEY_VALUES, calculateMoneyAtStake, calculateSecuredMoney } from '../utils/gameConstants.js';
-
+import Game from "../models/gameModel.js";
+import GameSession from "../models/gameSessionModel.js";
+import User from "../models/userModel.js";
+import mongoose from "../utils/db.js";
+import Question from "../models/questionsModel.js";
+import { updateLeaderboard } from "./leaderboardController.js";
+import {
+  MONEY_VALUES,
+  calculateMoneyAtStake,
+  calculateSecuredMoney,
+} from "../utils/gameConstants.js";
 
 const endExistingGame = async (userId) => {
-  const existingGame = await GameSession.findOne({ 
-    userId: userId, 
-    status: 'active' 
+  const existingGame = await GameSession.findOne({
+    userId: userId,
+    status: "active",
   });
-  
+
   if (existingGame) {
-    existingGame.status = 'abandoned';
+    existingGame.status = "abandoned";
     existingGame.endTime = new Date();
     await existingGame.save();
     return true;
@@ -33,7 +36,6 @@ const findDefaultGame = async () => {
 const findGame = async (gameId) => {
   const game = await Game.findById(gameId);
   if (game) {
-    // Increment play count
     game.playCount += 1;
     await game.save();
   }
@@ -42,41 +44,38 @@ const findGame = async (gameId) => {
 
 const findQuestionForLevel = async (game, level) => {
   let question = null;
-  
+
   if (game.questions && game.questions.length > 0) {
-    // For custom games, use embedded questions
-    const levelQuestions = game.questions.filter(q => q.difficulty === level);
-    
+    const levelQuestions = game.questions.filter((q) => q.difficulty === level);
+
     if (levelQuestions.length > 0) {
-      // Select a random question
       const randomIndex = Math.floor(Math.random() * levelQuestions.length);
       question = levelQuestions[randomIndex];
     }
   } else if (game.questionIds && game.questionIds.length > 0) {
-    // For system games, load from question bank
     const questions = await Question.find({
       _id: { $in: game.questionIds },
-      difficulty: level
+      difficulty: level,
     });
-    
+
     if (questions.length > 0) {
-      // Select a random question
       const randomIndex = Math.floor(Math.random() * questions.length);
       question = questions[randomIndex];
     }
   }
-  
+
   return question;
 };
 
 const createGameSession = async (userId, gameId, questionId) => {
   const gameSession = new GameSession({
     userId,
-    gameId: typeof gameId === 'string' ? new mongoose.Types.ObjectId(gameId) : gameId,
+    gameId:
+      typeof gameId === "string" ? new mongoose.Types.ObjectId(gameId) : gameId,
     currentLevel: 1,
-    currentQuestion: questionId
+    currentQuestion: questionId,
   });
-  
+
   await gameSession.save();
   return gameSession;
 };
@@ -89,17 +88,24 @@ const calculateAvgTimePerQuestion = (gameSession) => {
   if (!gameSession.questionTimes || gameSession.questionTimes.length === 0) {
     return 0;
   }
-  
+
   const total = gameSession.questionTimes.reduce((sum, time) => sum + time, 0);
   return total / gameSession.questionTimes.length;
 };
 
-const updateLeaderboardForGame = async (userId, username, gameSession, gameWon = false) => {
+const updateLeaderboardForGame = async (
+  userId,
+  username,
+  gameSession,
+  gameWon = false,
+) => {
   const currentLevel = gameSession.currentLevel;
-  const moneyWon = gameWon ? MONEY_VALUES[currentLevel] : calculateSecuredMoney(currentLevel);
+  const moneyWon = gameWon
+    ? MONEY_VALUES[currentLevel]
+    : calculateSecuredMoney(currentLevel);
   const lifelinesUsed = calculateLifelinesUsed(gameSession);
   const avgTimePerQuestion = calculateAvgTimePerQuestion(gameSession);
-  
+
   await updateLeaderboard(
     userId,
     username,
@@ -107,12 +113,11 @@ const updateLeaderboardForGame = async (userId, username, gameSession, gameWon =
     Math.max(0, currentLevel - (gameWon ? 0 : 1)),
     gameWon,
     lifelinesUsed,
-    avgTimePerQuestion
+    avgTimePerQuestion,
   );
-  
+
   return moneyWon;
 };
-
 
 export const startGame = async (req, res) => {
   try {
@@ -120,13 +125,13 @@ export const startGame = async (req, res) => {
     let { gameId } = req.body;
 
     await endExistingGame(userId);
-    
+
     if (!gameId) {
       const defaultGame = await findDefaultGame();
       if (!defaultGame) {
         return res.status(404).json({
           success: false,
-          message: 'No default game found in the system'
+          message: "No default game found in the system",
         });
       }
       gameId = defaultGame._id;
@@ -136,41 +141,41 @@ export const startGame = async (req, res) => {
     if (!game) {
       return res.status(404).json({
         success: false,
-        message: 'Game not found'
+        message: "Game not found",
       });
     }
 
     const question = await findQuestionForLevel(game, 1);
-    
+
     if (!question) {
       return res.status(400).json({
         success: false,
-        message: 'No level 1 questions found for this game'
+        message: "No level 1 questions found for this game",
       });
     }
 
     const gameSession = await createGameSession(userId, gameId, question._id);
-    
+
     return res.status(200).json({
       success: true,
       gameSessionId: gameSession._id,
       gameInfo: {
         id: game._id,
         title: game.title,
-        theme: game.theme
+        theme: game.theme,
       },
       question: {
         id: question._id,
         text: question.question,
         options: question.options,
         level: 1,
-        moneyAtStake: calculateMoneyAtStake(1)
-      }
+        moneyAtStake: calculateMoneyAtStake(1),
+      },
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to start game'
+      message: error.message || "Failed to start game",
     });
   }
 };
@@ -179,38 +184,43 @@ export const completeCustomGame = async (req, res) => {
   try {
     const { gameId } = req.params;
     const userId = req.user.id;
-    
-    const gameSession = await GameSession.findOne({ 
-      gameId, 
+
+    const gameSession = await GameSession.findOne({
+      gameId,
       userId,
-      status: 'active' 
+      status: "active",
     });
-    
+
     if (!gameSession) {
       return res.status(404).json({
         success: false,
-        message: 'Game session not found'
+        message: "Game session not found",
       });
     }
-        
-    gameSession.status = 'completed';
+
+    gameSession.status = "completed";
     gameSession.endTime = new Date();
-    
+
     const user = await User.findById(userId);
-    const moneyWon = await updateLeaderboardForGame(userId, user.username, gameSession, true);
-    
+    const moneyWon = await updateLeaderboardForGame(
+      userId,
+      user.username,
+      gameSession,
+      true,
+    );
+
     gameSession.moneyWon = moneyWon;
     await gameSession.save();
-    
+
     return res.status(200).json({
       success: true,
-      message: 'Custom game completed successfully',
-      moneyWon: moneyWon
+      message: "Custom game completed successfully",
+      moneyWon: moneyWon,
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: 'An error occurred while completing the game'
+      message: "An error occurred while completing the game",
     });
   }
 };
@@ -223,30 +233,30 @@ export const quitGame = async (req, res) => {
     if (!gameSessionId) {
       return res.status(400).json({
         success: false,
-        message: 'Game session ID is required'
+        message: "Game session ID is required",
       });
     }
 
-    const gameSession = await GameSession.findOne({ 
+    const gameSession = await GameSession.findOne({
       _id: gameSessionId,
       userId,
-      status: 'active' 
+      status: "active",
     });
-    
+
     if (!gameSession) {
       return res.status(404).json({
         success: false,
-        message: 'Game session not found or already ended'
+        message: "Game session not found or already ended",
       });
     }
-    
-    gameSession.status = 'quit';
+
+    gameSession.status = "quit";
     gameSession.endTime = new Date();
-    
+
     const moneyWon = calculateSecuredMoney(gameSession.currentLevel);
     gameSession.moneyWon = moneyWon;
     await gameSession.save();
-    
+
     await updateLeaderboard(
       userId,
       req.user.username,
@@ -254,20 +264,19 @@ export const quitGame = async (req, res) => {
       Math.max(0, gameSession.currentLevel - 1),
       false,
       calculateLifelinesUsed(gameSession),
-      0
+      0,
     );
 
     return res.status(200).json({
       success: true,
-      message: 'Game quit successfully',
+      message: "Game quit successfully",
       moneyWon,
-      status: 'quit'
+      status: "quit",
     });
-    
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: "Internal server error",
     });
   }
 };

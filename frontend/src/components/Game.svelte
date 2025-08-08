@@ -5,10 +5,9 @@
   import MoneyLadder from './MoneyLadder.svelte';
   import Lifelines from './Lifelines.svelte';
   import { currentUser } from '../stores/generalStore.js';
-  
+
   export let gameId = null;
-  
-  
+
   $: gameStatus = $gameStore.gameStatus;
   $: currentQuestion = $gameStore.currentQuestion;
   $: currentLevel = $gameStore.currentLevel;
@@ -16,24 +15,21 @@
   $: moneyWon = $gameStore.moneyWon;
   $: usedLifelines = $gameStore.usedLifelines;
   $: lifelines = $gameStore.lifelines;
-  
+
   onMount(async () => {
     try {
       await gameStore.startGame(gameId);
-    } catch (error) {
-      
-    }
+    } catch (error) {}
   });
-  
+
   const handleSubmitAnswer = (answer) => gameStore.submitAnswer(answer);
   const handleQuitGame = () => gameStore.quitGame();
   const handleRestartGame = () => gameStore.startGame(gameId);
-  
+
   async function useLifeline(lifeline) {
     try {
       await gameStore.useLifeline(lifeline);
-    } catch (error) {
-    }
+    } catch (error) {}
   }
 </script>
 
@@ -41,15 +37,12 @@
   <header>
     <h1>Who Wants to Be a Millionaire</h1>
     <p>Player: {$currentUser?.username || 'Guest'}</p>
-    
-    <!-- Only show restart button during active gameplay -->
+
     {#if gameStatus === 'active'}
-      <button class="restart-button" on:click={handleRestartGame}>
-        Restart Game
-      </button>
+      <button class="restart-button" on:click={handleRestartGame}> Restart Game </button>
     {/if}
   </header>
-  
+
   {#if gameStatus === 'loading'}
     <div class="loading">
       <p>Loading game...</p>
@@ -57,17 +50,14 @@
   {:else if gameStatus === 'active'}
     <div class="game-area">
       <div class="sidebar">
-        <Lifelines 
-          usedLifelines={usedLifelines} 
-          useLifeline={useLifeline} 
-        />
-        
+        <Lifelines {usedLifelines} {useLifeline} />
+
         {#if lifelines?.friendAdvice}
           <div class="lifeline-feedback friend-advice">
             <h4>Phone A Friend</h4>
             <div class="friend-container">
               <div class="friend-message">
-                <p class="advice">Your friend says: </p>
+                <p class="advice">Your friend says:</p>
                 <p class="answer-text">Answer: <span class="answer">{lifelines.friendAdvice.friendAnswer}</span></p>
               </div>
             </div>
@@ -91,11 +81,11 @@
           </div>
         {/if}
       </div>
-      
+
       <div class="main-content">
         <div class="question-area">
           {#key currentLevel}
-            <Question 
+            <Question
               question={currentQuestion?.question || ''}
               options={currentQuestion?.options || []}
               level={currentLevel}
@@ -103,7 +93,7 @@
               fiftyFiftyOptions={lifelines?.fiftyFiftyOptions}
             />
           {/key}
-          
+
           <div class="controls">
             <button class="quit-button" on:click={handleQuitGame}>
               Walk Away with ${(securedMoney || 0).toLocaleString()}
@@ -113,7 +103,7 @@
       </div>
 
       <div class="ladder-container">
-        <MoneyLadder currentLevel={currentLevel} />
+        <MoneyLadder {currentLevel} />
       </div>
     </div>
   {:else if gameStatus === 'won'}
@@ -123,17 +113,17 @@
       <p class="money-won">${(moneyWon || 0).toLocaleString()}</p>
       <div class="buttons">
         <button class="btn-primary" on:click={handleRestartGame}>Play Again</button>
-        <button class="btn-secondary" on:click={() => window.location.href = '/game-select'}>Back to Games</button>
+        <button class="btn-secondary" on:click={() => (window.location.href = '/game-select')}>Back to Games</button>
       </div>
     </div>
-  {:else if gameStatus === 'failed'} 
+  {:else if gameStatus === 'failed'}
     <div class="game-result lose">
       <h2>Game Over</h2>
       <p>You lost with:</p>
       <p class="money-won">${(moneyWon || 0).toLocaleString()}</p>
       <div class="buttons">
         <button class="btn-primary" on:click={handleRestartGame}>Try Again</button>
-        <button class="btn-secondary" on:click={() => window.location.href = '/game-select'}>Back to Games</button>
+        <button class="btn-secondary" on:click={() => (window.location.href = '/game-select')}>Back to Games</button>
       </div>
     </div>
   {:else if gameStatus === 'quit'}
@@ -142,7 +132,7 @@
       <p class="money-won">${(moneyWon || securedMoney || 0).toLocaleString()}</p>
       <div class="buttons">
         <button class="btn-primary" on:click={handleRestartGame}>Play Again</button>
-        <button class="btn-secondary" on:click={() => window.location.href = '/game-select'}>Back to Games</button>
+        <button class="btn-secondary" on:click={() => (window.location.href = '/game-select')}>Back to Games</button>
       </div>
     </div>
   {:else}
@@ -162,31 +152,31 @@
     margin: 0 auto;
     padding: 1rem;
   }
-  
+
   .game-area {
     display: grid;
-    grid-template-columns: 200px 1fr 220px; /* Sidebar, main, ladder */
+    grid-template-columns: 200px 1fr 220px;
     gap: 20px;
   }
-  
+
   .sidebar {
     display: flex;
     flex-direction: column;
     gap: 20px;
   }
-  
+
   .question-area {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
   }
-  
+
   .controls {
     display: flex;
     justify-content: center;
     margin-top: 2rem;
   }
-  
+
   .quit-button {
     padding: 0.75rem 1.5rem;
     background-color: #ff4500;
@@ -196,15 +186,16 @@
     font-weight: bold;
     cursor: pointer;
   }
-  
-  .loading, .error {
+
+  .loading,
+  .error {
     display: flex;
     justify-content: center;
     align-items: center;
     height: 50vh;
     font-size: 1.5rem;
   }
-  
+
   .restart-button {
     position: absolute;
     right: 0;
@@ -218,7 +209,7 @@
     font-weight: bold;
     cursor: pointer;
   }
-  
+
   header {
     position: relative;
     display: flex;
@@ -227,21 +218,21 @@
     margin-bottom: 1.5rem;
     text-align: center;
   }
-  
+
   header h1 {
     font-size: 2rem;
     margin-bottom: 0.5rem;
   }
-  
+
   header p {
     margin: 0;
   }
-  
+
   .audience-results {
     background-color: #2c3e50;
     padding: 15px;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     color: white;
     margin-top: 15px;
   }
@@ -308,7 +299,7 @@
     background-color: #2c3e50;
     padding: 15px;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     color: white;
     margin-top: 15px;
   }
@@ -346,12 +337,12 @@
     max-width: 500px;
     margin: 3rem auto;
   }
-  
+
   .game-result h2 {
     margin-bottom: 1rem;
     font-size: 2rem;
   }
-  
+
   .money-won {
     font-size: 3rem;
     font-weight: bold;
@@ -359,18 +350,25 @@
     margin: 2rem 0;
     text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
   }
-  
-  .win h2 { color: #4caf50; }
-  .lose h2 { color: #f44336; }
-  .quit h2 { color: #ff9800; }
-  
+
+  .win h2 {
+    color: #4caf50;
+  }
+  .lose h2 {
+    color: #f44336;
+  }
+  .quit h2 {
+    color: #ff9800;
+  }
+
   .buttons {
     display: flex;
     gap: 1rem;
     justify-content: center;
   }
-  
-  .btn-primary, .btn-secondary {
+
+  .btn-primary,
+  .btn-secondary {
     padding: 0.75rem 1.5rem;
     border: none;
     border-radius: 4px;
@@ -378,23 +376,22 @@
     cursor: pointer;
     transition: background-color 0.2s;
   }
-  
+
   .btn-primary {
     background-color: #3b82f6;
     color: white;
   }
-  
+
   .btn-primary:hover {
     background-color: #2563eb;
   }
-  
+
   .btn-secondary {
     background-color: #4b5563;
     color: white;
   }
-  
+
   .btn-secondary:hover {
     background-color: #374151;
   }
-  
 </style>

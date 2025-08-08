@@ -1,8 +1,8 @@
 <script>
-  import { onMount } from 'svelte'; 
+  import { onMount } from 'svelte';
   import { Router, Link, Route } from 'svelte-routing';
-  import { Toaster } from 'svelte-french-toast'; 
-  import { currentUser, logout, tokenExpiry } from './stores/generalStore.js'; 
+  import { Toaster } from 'svelte-french-toast';
+  import { currentUser, logout, tokenExpiry } from './stores/generalStore.js';
   import { refreshAccessToken } from './util/token.js';
   import { get } from 'svelte/store';
   import Login from './pages/Login.svelte';
@@ -12,8 +12,10 @@
   import HomeMenu from './pages/HomeMenu.svelte';
   import GameSelect from './pages/GameSelect.svelte';
   import CreateGame from './pages/CreateGame.svelte';
+  import StatsDashboard from './pages/StatsDashboard.svelte';
+  import PrivacyPolicyPage from './pages/PrivacyPolicyPage.svelte';
 
-  export let url = ''; 
+  export let url = '';
   let menuOpen = false;
 
   const handleUserAction = async () => {
@@ -22,7 +24,7 @@
       try {
         await refreshAccessToken();
       } catch (err) {
-        logout(); 
+        logout();
         window.location.href = '/login';
       }
     }
@@ -31,11 +33,11 @@
   const toggleMenu = () => {
     menuOpen = !menuOpen;
   };
-  
+
   onMount(() => {
     document.body.addEventListener('click', handleUserAction);
     document.body.addEventListener('keydown', handleUserAction);
-    
+
     return () => {
       document.body.removeEventListener('click', handleUserAction);
       document.body.removeEventListener('keydown', handleUserAction);
@@ -51,20 +53,26 @@
           <div class="logo">
             <Link to="/">Millionaire Quiz</Link>
           </div>
-          
+
           <button class="menu-toggle" on:click={toggleMenu} aria-label="Toggle menu">
             <span></span>
             <span></span>
             <span></span>
           </button>
-          
+
           <nav class="main-nav" class:open={menuOpen}>
             <ul>
-              <li><Link to="/" on:click={() => menuOpen = false}>Home</Link></li>
-              <li><Link to="/game-select" on:click={() => menuOpen = false}>Games</Link></li>
-              <li><Link to="/leaderboard" on:click={() => menuOpen = false}>Leaderboard</Link></li>
+              <li><Link to="/" on:click={() => (menuOpen = false)}>Home</Link></li>
+              <li><Link to="/game-select" on:click={() => (menuOpen = false)}>Games</Link></li>
+              <li><Link to="/leaderboard" on:click={() => (menuOpen = false)}>Leaderboard</Link></li>
             </ul>
-            <button class="logout-btn" on:click={() => { logout(); menuOpen = false; }}>
+            <button
+              class="logout-btn"
+              on:click={() => {
+                logout();
+                menuOpen = false;
+              }}
+            >
               Logout
             </button>
           </nav>
@@ -76,46 +84,56 @@
       <Route path="/login">
         <Login />
       </Route>
-      
+
       <Route path="/game-select">
         <PrivateRouteGuard>
           <GameSelect />
         </PrivateRouteGuard>
       </Route>
-      
+
       <Route path="/create-game">
         <PrivateRouteGuard>
           <CreateGame />
         </PrivateRouteGuard>
       </Route>
-      
+
       <Route path="/game/:id" let:params>
         <PrivateRouteGuard>
           <Game gameId={params.id || null} />
         </PrivateRouteGuard>
       </Route>
-      
+
       <Route path="/game">
         <PrivateRouteGuard>
           <Game />
         </PrivateRouteGuard>
       </Route>
-      
+
       <Route path="/leaderboard">
         <PrivateRouteGuard>
           <Leaderboard />
         </PrivateRouteGuard>
       </Route>
-      
+
       <Route path="/">
         <PrivateRouteGuard>
           <HomeMenu />
         </PrivateRouteGuard>
       </Route>
+
+      <Route path="/stats">
+        <PrivateRouteGuard>
+          <StatsDashboard />
+        </PrivateRouteGuard>
+      </Route>
+
+      <Route path="/privacy-policy">
+        <PrivacyPolicyPage />
+      </Route>
     </main>
   </Router>
 
-  <Toaster position="top-center" toastOptions={{ style: "background: #1e293b; color: #f8fafc;" }} />
+  <Toaster position="top-center" toastOptions={{ style: 'background: #1e293b; color: #f8fafc;' }} />
 </div>
 
 <style>

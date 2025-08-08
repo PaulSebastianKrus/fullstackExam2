@@ -24,7 +24,7 @@
       socket.disconnect();
     }
   });
-  
+
   function setupSocket() {
     socket = io(import.meta.env.SOCKET_URL);
 
@@ -40,18 +40,18 @@
     socket.on('disconnect', () => {
       isConnected = false;
     });
-    
+
     socket.on('leaderboard:update', (data) => {
       if (data && Array.isArray(data.leaderboard)) {
         leaderboard = data.leaderboard;
         toast.success('Leaderboard updated', {
           duration: 2000,
           position: 'bottom-right',
-          style: 'background: #064e3b; color: white;'
+          style: 'background: #064e3b; color: white;',
         });
       }
     });
-    
+
     if ($currentUser) {
       socket.on(`stats:update:${$currentUser._id}`, (data) => {
         if (data && data.stats) {
@@ -59,7 +59,7 @@
           toast.success('Your stats updated', {
             duration: 2000,
             position: 'bottom-right',
-            style: 'background: #064e3b; color: white;'
+            style: 'background: #064e3b; color: white;',
           });
         }
       });
@@ -94,8 +94,8 @@
 
         const statsResponse = await fetch('/api/stats/me', {
           headers: {
-            'Authorization': `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         });
 
         if (!statsResponse.ok) {
@@ -125,20 +125,11 @@
   {#if error}
     <div class="error">
       {error}
-      <button class="retry-btn" on:click={loadLeaderboardData}>
-        Retry
-      </button>
+      <button class="retry-btn" on:click={loadLeaderboardData}> Retry </button>
     </div>
   {/if}
 
-  <LeaderboardComponent 
-    leaderboardData={leaderboard}
-    {userStats}
-    {loading}
-    showPersonalStats={true}
-    showGlobalStats={true}
-    maxDisplayPlayers={20}
-  />
+  <LeaderboardComponent leaderboardData={leaderboard} {userStats} {loading} showPersonalStats={true} showGlobalStats={true} maxDisplayPlayers={20} />
 </div>
 
 <style>

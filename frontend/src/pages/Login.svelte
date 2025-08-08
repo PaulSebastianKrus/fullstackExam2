@@ -21,7 +21,7 @@
 
       if (isLoginMode) {
         localStorage.setItem('token', response.token);
-        
+
         currentUser.set(response.user);
         toast.success('Welcome back!');
 

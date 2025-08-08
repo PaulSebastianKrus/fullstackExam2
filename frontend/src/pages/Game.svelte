@@ -1,7 +1,7 @@
 <script>
   import { useParams } from 'svelte-routing';
   import GameComponent from '../components/Game.svelte';
-  
+
   const params = useParams();
   const gameId = params?.gameId || null;
 </script>
