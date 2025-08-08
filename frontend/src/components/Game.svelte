@@ -31,12 +31,12 @@
       await gameStore.useLifeline(lifeline);
     } catch (error) {}
   }
+
 </script>
 
 <div class="game-container">
   <header>
     <h1>Who Wants to Be a Millionaire</h1>
-    <p>Player: {$currentUser?.username || 'Guest'}</p>
 
     {#if gameStatus === 'active'}
       <button class="restart-button" on:click={handleRestartGame}> Restart Game </button>
